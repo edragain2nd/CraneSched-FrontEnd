@@ -170,7 +170,7 @@ message TaskToCtld {
   bool exclusive = 37;
 
   bool hold = 38;
-  google.protobuf.Timestamp begin_time = 39; 
+  google.protobuf.Timestamp begin_time = 39;
   google.protobuf.Timestamp deadline_time = 40;
 }
 
@@ -219,7 +219,6 @@ message TaskToD {
   google.protobuf.Timestamp start_time = 5;  // Currently Only used in CraneCtld
   google.protobuf.Duration time_limit = 6;
   google.protobuf.Timestamp deadline_time = 7;
-
 
   string partition = 8;
   uint32 uid = 9;
