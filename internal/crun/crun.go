@@ -1124,9 +1124,14 @@ func MainCrun(args []string) error {
 		task.Hold = true
 	}
 	if FlagDeadlineTime != "" {
-		if deadlineTime, err := util.ParseTime(FlagDeadlineTime); err == nil {
-			task.DeadlineTime = timestamppb.New(deadlineTime)
+		deadlineTime, err := util.ParseTime(FlagDeadlineTime)
+		if err != nil {
+			return &util.CraneError{
+				Code:    util.ErrorCmdArg,
+				Message: fmt.Sprintf("Invalid argument: --deadline: %s", err),
+			}
 		}
+		task.DeadlineTime = timestamppb.New(deadlineTime)
 	}
 	// Marshal extra attributes
 	if err := structExtraFromCli.Marshal(&task.ExtraAttr); err != nil {
