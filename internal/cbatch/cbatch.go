@@ -47,7 +47,7 @@ var (
 )
 
 // BuildCbatchJob reads flags and script file to build a job
-func BuildCbatchJob(cmd *cobra.Command, args []string) (*protos.TaskToCtld, error) {
+func BuildCbatchJob(cmd *cobra.Command, args []string) *protos.TaskToCtld {
 	task := new(protos.TaskToCtld)
 
 	// Parse the script file or use wrapped script
@@ -57,7 +57,9 @@ func BuildCbatchJob(cmd *cobra.Command, args []string) (*protos.TaskToCtld, erro
 	if FlagWrappedScript == "" {
 		shLines := make([]string, 0)
 		if err := ParseCbatchScript(args[0], &cbatchArgs, &shLines); err != nil {
-			return nil, fmt.Errorf("invalid argument: failed to parse script: %w", err)
+			log.Errorf("invalid argument: failed to parse script: %s", err)
+			return nil
+
 		}
 		task.Name = filepath.Base(args[0])
 		shScript = strings.Join(shLines, "\n")
@@ -107,7 +109,8 @@ func BuildCbatchJob(cmd *cobra.Command, args []string) (*protos.TaskToCtld, erro
 
 	var extraFromScript string
 	if err := structExtraFromScript.Marshal(&extraFromScript); err != nil {
-		return nil, fmt.Errorf("invalid argument: failed to marshal extra attributes from script: %w", err)
+		log.Errorf("invalid argument: failed to marshal extra attributes from script: %s", err)
+		return nil
 	}
 
 	// Set args from the command line flags
@@ -150,14 +153,16 @@ func BuildCbatchJob(cmd *cobra.Command, args []string) (*protos.TaskToCtld, erro
 	if FlagTime != "" {
 		seconds, err := util.ParseDurationStrToSeconds(FlagTime)
 		if err != nil {
-			return nil, fmt.Errorf("invalid argument: invalid --time value '%s': %w", FlagTime, err)
+			log.Errorf("invalid argument: invalid --time value '%s': %s", FlagTime, err)
+			return nil
 		}
 		task.TimeLimit.Seconds = seconds
 	}
 	if FlagMem != "" {
 		memInByte, err := util.ParseMemStringAsByte(FlagMem)
 		if err != nil {
-			return nil, fmt.Errorf("invalid argument: invalid --mem value '%s': %w", FlagMem, err)
+			log.Errorf("invalid argument: invalid --mem value '%s': %s", FlagMem, err)
+			return nil
 		}
 		task.ReqResources.AllocatableRes.MemoryLimitBytes = memInByte
 		task.ReqResources.AllocatableRes.MemorySwLimitBytes = memInByte
@@ -233,13 +238,15 @@ func BuildCbatchJob(cmd *cobra.Command, args []string) (*protos.TaskToCtld, erro
 		case util.OpenModeTruncate:
 			task.GetBatchMeta().OpenModeAppend = proto.Bool(false)
 		default:
-			return nil, fmt.Errorf("invalid argument: --open-mode must be either '%s' or '%s'", util.OpenModeAppend, util.OpenModeTruncate)
+			log.Errorf("invalid argument: --open-mode must be either '%s' or '%s'", util.OpenModeAppend, util.OpenModeTruncate)
+			return nil
 		}
 	}
 	if FlagBeginTime != "" {
 		beginTime, err := util.ParseTime(FlagBeginTime)
 		if err != nil {
-			return nil, fmt.Errorf("invalid argument: invalid --begin value '%s': %w", FlagBeginTime, err)
+			log.Errorf("invalid argument: invalid --begin value '%s': %s", FlagBeginTime, err)
+			return nil
 		}
 		task.BeginTime = timestamppb.New(beginTime)
 	}
@@ -276,7 +283,8 @@ func BuildCbatchJob(cmd *cobra.Command, args []string) (*protos.TaskToCtld, erro
 	// Set and check the extra attributes
 	var extraFromCli string
 	if err := structExtraFromCli.Marshal(&extraFromCli); err != nil {
-		return nil, fmt.Errorf("invalid argument: failed to marshal extra attributes from CLI: %w", err)
+		log.Errorf("invalid argument: failed to marshal extra attributes from CLI: %s", err)
+		return nil
 	}
 	task.ExtraAttr = util.AmendJobExtraAttrs(extraFromScript, extraFromCli)
 
@@ -298,10 +306,12 @@ func BuildCbatchJob(cmd *cobra.Command, args []string) (*protos.TaskToCtld, erro
 
 	// Check the validity of the parameters
 	if err := util.CheckFileLength(task.GetBatchMeta().OutputFilePattern); err != nil {
-		return nil, fmt.Errorf("invalid argument: invalid output file path: %w", err)
+		log.Errorf("invalid argument: invalid output file path: %s", err)
+		return nil
 	}
 	if err := util.CheckFileLength(task.GetBatchMeta().ErrorFilePattern); err != nil {
-		return nil, fmt.Errorf("invalid argument: invalid error file path: %w", err)
+		log.Errorf("invalid argument: invalid error file path: %s", err)
+		return nil
 	}
 	if err := util.CheckTaskArgs(task); err != nil {
 		return nil, fmt.Errorf("invalid argument: %w", err)
@@ -508,6 +518,7 @@ func SendRequest(task *protos.TaskToCtld) error {
 		if reply.GetOk() {
 			return nil
 		} else {
+			log.Errorf("Reply failed.")
 			return &util.CraneError{Code: util.ErrorBackend}
 		}
 	}

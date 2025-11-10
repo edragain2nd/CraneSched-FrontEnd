@@ -337,7 +337,7 @@ func (m *StateMachineOfCrun) StateReqTaskId() {
 			}
 			m.state = WaitRes
 		} else {
-			_, _ = fmt.Fprintf(os.Stderr, "Failed to allocate job id: %s\n", payload.FailureReason)
+			log.Errorf("Failed to allocate task id: %s", payload.FailureReason)
 			m.state = End
 			m.err = util.ErrorBackend
 			return
@@ -383,7 +383,7 @@ func (m *StateMachineOfCrun) StateWaitRes() {
 				}
 				m.state = WaitForward
 			} else {
-				log.Errorln("Failed to allocate job resource. Exiting...")
+				log.Errorf("Failed to allocate task resource. Exiting...")
 				m.state = End
 				m.err = util.ErrorBackend
 				return
@@ -1186,32 +1186,13 @@ func MainCrun(cmd *cobra.Command, args []string) error {
 
 	var err error
 	if gVars.cwd, err = os.Getwd(); err != nil {
-		return util.WrapCraneErr(util.ErrorSystem, "Failed to get working directory: %s.", err)
+		log.Errorf("Failed to get working directory: %s.", err)
+		return &util.CraneError{Code: util.ErrorBackend}
 	}
 
 	if len(args) == 0 {
-		return util.NewCraneErr(util.ErrorCmdArg, "Please specify program to run")
-	}
-
-	jobId, stepMode, err := util.ParseJobNestedEnv()
-	if err != nil {
-		return util.WrapCraneErr(util.ErrorSystem, "Failed to parse env: %s.", err)
-	}
-	jobMode := !stepMode
-
-	var job *protos.TaskToCtld
-	var step *protos.StepToCtld
-	egid := syscall.Getegid()
-	groups, err := syscall.Getgroups()
-	if err != nil {
-		return util.NewCraneErr(util.ErrorSystem, fmt.Sprintf("Failed to get user groups: %s.", err))
-	}
-	gids := []uint32{uint32(egid)}
-
-	for _, g := range groups {
-		if g != egid {
-			gids = append(gids, uint32(g))
-		}
+		log.Errorf("Please specify program to run.")
+		return &util.CraneError{Code: util.ErrorCmdArg}
 	}
 
 	if jobMode {
@@ -1306,46 +1287,19 @@ func MainCrun(cmd *cobra.Command, args []string) error {
 	if FlagTime != "" {
 		seconds, err := util.ParseDurationStrToSeconds(FlagTime)
 		if err != nil {
-			return util.NewCraneErr(util.ErrorCmdArg, fmt.Sprintf("Invalid argument: invalid --time: %s.", err))
-		}
-		if jobMode {
-			job.TimeLimit.Seconds = seconds
-		} else {
-			step.TimeLimit.Seconds = seconds
+			log.Errorf("Invalid argument: invalid --time: %s.", err)
+			return &util.CraneError{Code: util.ErrorCmdArg}
 		}
 	}
 	if FlagMem != "" {
 		memInByte, err := util.ParseMemStringAsByte(FlagMem)
 		if err != nil {
-			return util.NewCraneErr(util.ErrorCmdArg, fmt.Sprintf("Invalid argument: %s.", err))
+			log.Errorf("Invalid argument: %s.", err)
+			return &util.CraneError{Code: util.ErrorCmdArg}
 		}
-		if jobMode {
-			job.ReqResources.AllocatableRes.MemoryLimitBytes = memInByte
-			job.ReqResources.AllocatableRes.MemorySwLimitBytes = memInByte
-		} else {
-			if step.ReqResourcesPerTask == nil {
-				step.ReqResourcesPerTask = &protos.ResourceView{
-					AllocatableRes: &protos.AllocatableResource{MemoryLimitBytes: memInByte,
-						MemorySwLimitBytes: memInByte},
-				}
-			} else {
-				step.ReqResourcesPerTask.AllocatableRes.MemoryLimitBytes = memInByte
-				step.ReqResourcesPerTask.AllocatableRes.MemorySwLimitBytes = memInByte
-			}
-		}
+		task.ReqResources.AllocatableRes.MemoryLimitBytes = memInByte
+		task.ReqResources.AllocatableRes.MemorySwLimitBytes = memInByte
 	}
-	if FlagMemPerCpu != "" {
-		memInBytePerCpu, err := util.ParseMemStringAsByte(FlagMemPerCpu)
-		if err != nil {
-			return util.NewCraneErr(util.ErrorCmdArg, fmt.Sprintf("Invalid argument: %s.", err))
-		}
-		if jobMode {
-			job.MemPerCpu = &memInBytePerCpu
-		} else {
-			step.MemPerCpu = &memInBytePerCpu
-		}
-	}
-	setGresGpusFlag := false
 	if FlagGres != "" {
 		gresMap := util.ParseGres(FlagGres)
 		if jobMode {
@@ -1583,12 +1537,15 @@ func MainCrun(cmd *cobra.Command, args []string) error {
 	if FlagX11 {
 		target, port, err := util.GetX11DisplayEx(!FlagX11Fwd)
 		if err != nil {
-			return util.NewCraneErr(util.ErrorSystem, fmt.Sprintf("Error in reading X11 $DISPLAY: %s.", err))
+			log.Errorf("Error in reading X11 $DISPLAY: %s.", err)
+			return &util.CraneError{Code: util.ErrorSystem}
 		}
 
 		if !FlagX11Fwd && (target == "" || target == "localhost") {
 			if target, err = os.Hostname(); err != nil {
-				return util.NewCraneErr(util.ErrorSystem, fmt.Sprintf("failed to get hostname: %s.", err))
+				log.Errorf("failed to get hostname: %s.", err)
+				return &util.CraneError{Code: util.ErrorSystem}
+
 			}
 			log.Debugf("Host in $DISPLAY (%v) is invalid, using hostname: %s",
 				port-util.X11TcpPortOffset, target)
@@ -1596,7 +1553,8 @@ func MainCrun(cmd *cobra.Command, args []string) error {
 
 		cookie, err := util.GetX11AuthCookie()
 		if err != nil {
-			return util.NewCraneErr(util.ErrorSystem, fmt.Sprintf("Error in reading X11 xauth cookies: %s.", err))
+			log.Errorf("Error in reading X11 xauth cookies: %s.", err)
+			return &util.CraneError{Code: util.ErrorSystem}
 		}
 
 		iaMeta.X11 = true
@@ -1621,7 +1579,8 @@ func MainCrun(cmd *cobra.Command, args []string) error {
 	m.inputFlag = FlagInput
 
 	if FlagPty && strings.ToLower(FlagInput) != FlagInputALL {
-		return util.NewCraneErr(util.ErrorCmdArg, "--input is incompatible with --pty.")
+		log.Errorf("--input is incompatible with --pty.")
+		return &util.CraneError{Code: util.ErrorCmdArg}
 	}
 
 	m.Init(job, step)

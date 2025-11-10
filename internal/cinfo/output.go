@@ -170,10 +170,8 @@ func ParseBySpec(specifiers [][]int, reply *protos.QueryClusterInfoReply) ([]int
 			// with width specifier
 			width, err := strconv.ParseUint(FlagFormat[spec[2]+1:spec[3]], 10, 32)
 			if err != nil {
-				return nil, nil, nil, util.NewCraneErr(
-					util.ErrorInvalidFormat,
-					"Invalid width specifier.",
-				)
+				log.Errorf("Invalid width specifier.")
+				return nil, nil, nil, &util.CraneError{Code: util.ErrorInvalidFormat}
 			}
 			tableOutputWidth = append(tableOutputWidth, int(width))
 		}
@@ -188,11 +186,9 @@ func ParseBySpec(specifiers [][]int, reply *protos.QueryClusterInfoReply) ([]int
 			tableOutputHeader = append(tableOutputHeader, strings.ToUpper(processor.header))
 			processor.process(flattened, tableOutputCell)
 		} else {
-			return nil, nil, nil, util.NewCraneErr(
-				util.ErrorInvalidFormat,
-				fmt.Sprintf("Invalid format specifier or string: %s, string unfold case insensitive, reference:\n"+
-					"p/Partition, a/Avail, n/Nodes, s/State, l/NodeList.", field),
-			)
+			log.Errorf("Invalid format specifier or string: %s, string unfold case insensitive, reference:\n"+
+				"p/Partition, a/Avail, n/Nodes, s/State, l/NodeList.", field)
+			return nil, nil, nil, &util.CraneError{Code: util.ErrorInvalidFormat}
 		}
 	}
 	// Get the suffix of the format string
@@ -309,7 +305,8 @@ func FillTable(reply *protos.QueryClusterInfoReply, table *tablewriter.Table) er
 	if FlagFormat != "" {
 		header, tableData, err = FormatData(reply)
 		if err != nil {
-			return err
+			log.Errorf("%s", err)
+			return &util.CraneError{Code: util.ErrorInvalidFormat}
 		}
 		table.SetTablePadding("")
 		table.SetAutoFormatHeaders(false)
@@ -393,8 +390,26 @@ func JsonOutput(reply *protos.QueryClusterInfoReply) error {
 	if reply.GetOk() {
 		return nil
 	} else {
-		return util.NewCraneErr(util.ErrorBackend, "Backend returned non-ok status")
+		log.Errorf("Backend returned non-ok status")
+		return &util.CraneError{Code: util.ErrorBackend}
 	}
+}
+
+func FilterBadState(tableData [][]string) [][]string {
+
+	var new_table [][]string
+	//TODO: need to expand
+	pattern := `(drain|down)`
+
+	re := regexp.MustCompile(pattern)
+	for _, data := range tableData {
+		//FIXME: HARD CODE
+		if re.MatchString(data[3]) {
+			new_table = append(new_table, data)
+		}
+	}
+
+	return new_table
 }
 
 func FilterBadState(tableData [][]string) [][]string {

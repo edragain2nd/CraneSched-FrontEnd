@@ -26,6 +26,8 @@ import (
 	"strconv"
 	"time"
 
+	log "github.com/sirupsen/logrus"
+
 	grpccodes "google.golang.org/grpc/codes"
 	grpcstatus "google.golang.org/grpc/status"
 )
@@ -120,7 +122,8 @@ func Query() error {
 func loopedQuery(iterate uint64) error {
 	interval, err := time.ParseDuration(strconv.FormatUint(iterate, 10) + "s")
 	if err != nil {
-		return util.NewCraneErr(util.ErrorCmdArg, "Invalid time interval.")
+		log.Errorf("Invalid time interval.")
+		return &util.CraneError{Code: util.ErrorCmdArg}
 	}
 	return loopedSubQuery(interval)
 }
