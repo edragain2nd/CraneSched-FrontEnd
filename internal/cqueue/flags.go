@@ -157,7 +157,8 @@ func (p *StepIDsProcessor) Process(req *protos.QueryTasksInfoRequest) error {
 	}
 	filterStepList, err := util.ParseStepIdList(FlagFilterStepIDs, ",")
 	if err != nil {
-		return util.NewCraneErr(util.ErrorCmdArg, fmt.Sprintf("Invalid step list specified: %s.", err))
+		log.Errorf("Invalid step list specified: %s.", err)
+		return &util.CraneError{Code: util.ErrorCmdArg}
 	}
 	if len(filterStepList) == 0 {
 		req.FilterIds = filterStepList
@@ -202,7 +203,8 @@ func (p *NodeNamesProcessor) Process(req *protos.QueryTasksInfoRequest) error {
 	}
 	filterNodenameList, ok := util.ParseHostList(FlagFilterNodeNames)
 	if !ok {
-		return util.NewCraneErr(util.ErrorCmdArg, fmt.Sprintf("Invalid node pattern: %s.", FlagFilterNodeNames))
+		log.Errorf("Invalid node pattern: %s.", FlagFilterNodeNames)
+		return &util.CraneError{Code: util.ErrorCmdArg}
 	}
 	req.FilterNodenameList = filterNodenameList
 	return nil
@@ -217,7 +219,8 @@ func (p *LicensesProcessor) Process(req *protos.QueryTasksInfoRequest) error {
 	}
 	filterLicensesList, err := util.ParseStringParamList(FlagFilterLicenses, ",")
 	if err != nil {
-		return util.NewCraneErr(util.ErrorCmdArg, fmt.Sprintf("Invalid licenses list specified: %s.", err))
+		log.Errorf("Invalid licenses list specified: %s.", err)
+		return &util.CraneError{Code: util.ErrorCmdArg}
 	}
 	req.FilterLicenses = filterLicensesList
 	return nil

@@ -411,20 +411,3 @@ func FilterBadState(tableData [][]string) [][]string {
 
 	return new_table
 }
-
-func FilterBadState(tableData [][]string) [][]string {
-
-	var new_table [][]string
-	//TODO: need to expand
-	pattern := `(drain|down)`
-
-	re := regexp.MustCompile(pattern)
-	for _, data := range tableData {
-		//FIXME: HARD CODE
-		if re.MatchString(data[3]) {
-			new_table = append(new_table, data)
-		}
-	}
-
-	return new_table
-}

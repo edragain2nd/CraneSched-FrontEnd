@@ -69,7 +69,8 @@ func BuildCbatchJob(cmd *cobra.Command, args []string) *protos.TaskToCtld {
 	}
 
 	if isPod, err := isPodJob(cmd, cbatchArgs); err != nil {
-		return nil, err
+		log.Errorf("%s\n", err)
+		return nil
 	} else if isPod {
 		task.Type = protos.TaskType_Container
 	} else {
@@ -104,7 +105,8 @@ func BuildCbatchJob(cmd *cobra.Command, args []string) *protos.TaskToCtld {
 
 	// Set args from the script
 	if err := applyScriptArgs(cmd, cbatchArgs, task, &structExtraFromScript, &podOpts); err != nil {
-		return nil, err
+		log.Errorf("%s\n", err)
+		return nil
 	}
 
 	var extraFromScript string
@@ -129,7 +131,8 @@ func BuildCbatchJob(cmd *cobra.Command, args []string) *protos.TaskToCtld {
 		gresMap := util.ParseGres(FlagGres)
 		if _, exist := gresMap.NameTypeMap[util.GresGpuName]; exist {
 			if setGpusPerNodeFlag {
-				return nil, fmt.Errorf("invalid argument: cannot specify both --gres gpus and --gpus-per-node flags simultaneously")
+				log.Errorf("invalid argument: cannot specify both --gres gpus and --gpus-per-node flags simultaneously")
+				return nil
 			}
 			setGresGpusFlag = true
 		}
@@ -137,12 +140,14 @@ func BuildCbatchJob(cmd *cobra.Command, args []string) *protos.TaskToCtld {
 	}
 	if cmd.Flags().Changed("gpus-per-node") {
 		if setGresGpusFlag {
-			return nil, fmt.Errorf("invalid argument: cannot specify both --gres gpus and --gpus-per-node flags simultaneously")
+			log.Errorf("invalid argument: cannot specify both --gres gpus and --gpus-per-node flags simultaneously")
+			return nil
 		}
 		setGpusPerNodeFlag = true
 		gpuDeviceMap, err := util.ParseGpusPerNodeStr(FlagGpusPerNode)
 		if err != nil {
-			return nil, fmt.Errorf("invalid argument: invalid --gpus-per-node value '%s': %w", FlagGpusPerNode, err)
+			log.Errorf("invalid argument: invalid --gpus-per-node value '%s': %w", FlagGpusPerNode, err)
+			return nil
 		}
 		task.ReqResources.DeviceMap = gpuDeviceMap
 	}
@@ -170,7 +175,8 @@ func BuildCbatchJob(cmd *cobra.Command, args []string) *protos.TaskToCtld {
 	if FlagMemPerCpu != "" {
 		memInBytePerCpu, err := util.ParseMemStringAsByte(FlagMemPerCpu)
 		if err != nil {
-			return nil, fmt.Errorf("invalid argument: invalid --mem-per-cpu value '%s': %w", FlagMemPerCpu, err)
+			log.Errorf("invalid argument: invalid --mem-per-cpu value '%s': %w", FlagMemPerCpu, err)
+			return nil
 		}
 		task.MemPerCpu = &memInBytePerCpu
 	}
@@ -186,7 +192,8 @@ func BuildCbatchJob(cmd *cobra.Command, args []string) *protos.TaskToCtld {
 	if FlagLicenses != "" {
 		licCount, isLicenseOr, err := util.ParseLicensesString(FlagLicenses)
 		if err != nil {
-			return nil, fmt.Errorf("invalid argument: invalid --licenses value '%s': %w", FlagLicenses, err)
+			log.Errorf("invalid argument: invalid --licenses value '%s': %w", FlagLicenses, err)
+			return nil
 		}
 		task.LicensesCount = licCount
 		task.IsLicensesOr = isLicenseOr
@@ -263,7 +270,8 @@ func BuildCbatchJob(cmd *cobra.Command, args []string) *protos.TaskToCtld {
 	if FlagSignal != "" {
 		signals, err := util.ParseSignalParamString(FlagSignal)
 		if err != nil {
-			return nil, fmt.Errorf("invalid argument: signal value '%s' : %w", FlagSignal, err)
+			log.Errorf("invalid argument: signal value '%s' : %w", FlagSignal, err)
+			return nil
 		}
 		for _, signal := range signals {
 			task.Signals = append(task.Signals, signal)
@@ -275,7 +283,8 @@ func BuildCbatchJob(cmd *cobra.Command, args []string) *protos.TaskToCtld {
 		overridePodFromFlags(cmd, &podOpts)
 		podMeta, err := buildPodMeta(task, &podOpts)
 		if err != nil {
-			return nil, fmt.Errorf("invalid container options: %v", err)
+			log.Errorf("invalid container options: %v", err)
+			return nil
 		}
 		task.PodMeta = podMeta
 	}
@@ -294,13 +303,15 @@ func BuildCbatchJob(cmd *cobra.Command, args []string) *protos.TaskToCtld {
 	// Set the submit hostname
 	submitHostname, err := os.Hostname()
 	if err != nil {
-		return nil, fmt.Errorf("Failed to get hostname of the submitting host: %v", err)
+		log.Errorf("Failed to get hostname of the submitting host: %v", err)
+		return nil
 	}
 	task.SubmitHostname = submitHostname
 	if FlagDependency != "" {
 		err := util.SetTaskDependencies(task, FlagDependency)
 		if err != nil {
-			return nil, fmt.Errorf("invalid argument: failed to set dependencies: %w", err)
+			log.Errorf("invalid argument: failed to set dependencies: %w", err)
+			return nil
 		}
 	}
 
@@ -314,10 +325,11 @@ func BuildCbatchJob(cmd *cobra.Command, args []string) *protos.TaskToCtld {
 		return nil
 	}
 	if err := util.CheckTaskArgs(task); err != nil {
-		return nil, fmt.Errorf("invalid argument: %w", err)
+		log.Errorf("invalid argument: %w", err)
+		return nil
 	}
 
-	return task, nil
+	return task
 }
 
 func applyScriptArgs(cmd *cobra.Command, cbatchArgs []CbatchArg, task *protos.TaskToCtld, extraFromScript *util.JobExtraAttrs, podOpts *podOptions) error {

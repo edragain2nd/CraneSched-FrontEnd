@@ -106,6 +106,7 @@ var (
 			util.DetectNetworkProxy()
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
+			var err error
 			if FlagRepeat == 0 {
 				return util.NewCraneErr(util.ErrorCmdArg, "--repeat should be greater than 0")
 			}

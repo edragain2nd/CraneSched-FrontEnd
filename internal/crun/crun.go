@@ -1195,6 +1195,27 @@ func MainCrun(cmd *cobra.Command, args []string) error {
 		return &util.CraneError{Code: util.ErrorCmdArg}
 	}
 
+	jobId, stepMode, err := util.ParseJobNestedEnv()
+	if err != nil {
+		return util.WrapCraneErr(util.ErrorSystem, "Failed to parse env: %s.", err)
+	}
+	jobMode := !stepMode
+
+	var job *protos.TaskToCtld
+	var step *protos.StepToCtld
+	egid := syscall.Getegid()
+	groups, err := syscall.Getgroups()
+	if err != nil {
+		return util.NewCraneErr(util.ErrorSystem, fmt.Sprintf("Failed to get user groups: %s.", err))
+	}
+	gids := []uint32{uint32(egid)}
+
+	for _, g := range groups {
+		if g != egid {
+			gids = append(gids, uint32(g))
+		}
+	}
+
 	if jobMode {
 		job = &protos.TaskToCtld{
 			Name:          "Interactive",
@@ -1290,16 +1311,35 @@ func MainCrun(cmd *cobra.Command, args []string) error {
 			log.Errorf("Invalid argument: invalid --time: %s.", err)
 			return &util.CraneError{Code: util.ErrorCmdArg}
 		}
+		if jobMode {
+			job.TimeLimit.Seconds = seconds
+		} else {
+			step.TimeLimit.Seconds = seconds
+		}
 	}
+
 	if FlagMem != "" {
 		memInByte, err := util.ParseMemStringAsByte(FlagMem)
 		if err != nil {
 			log.Errorf("Invalid argument: %s.", err)
 			return &util.CraneError{Code: util.ErrorCmdArg}
 		}
-		task.ReqResources.AllocatableRes.MemoryLimitBytes = memInByte
-		task.ReqResources.AllocatableRes.MemorySwLimitBytes = memInByte
+		if jobMode {
+			job.ReqResources.AllocatableRes.MemoryLimitBytes = memInByte
+			job.ReqResources.AllocatableRes.MemorySwLimitBytes = memInByte
+		} else {
+			if step.ReqResourcesPerTask == nil {
+				step.ReqResourcesPerTask = &protos.ResourceView{
+					AllocatableRes: &protos.AllocatableResource{MemoryLimitBytes: memInByte,
+						MemorySwLimitBytes: memInByte},
+				}
+			} else {
+				step.ReqResourcesPerTask.AllocatableRes.MemoryLimitBytes = memInByte
+				step.ReqResourcesPerTask.AllocatableRes.MemorySwLimitBytes = memInByte
+			}
+		}
 	}
+	setGresGpusFlag := false
 	if FlagGres != "" {
 		gresMap := util.ParseGres(FlagGres)
 		if jobMode {
