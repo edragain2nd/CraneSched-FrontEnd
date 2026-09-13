@@ -306,7 +306,6 @@ func executeAddQosCommand(command *CAcctMgrCommand) error {
 		case "maxcpusperuser":
 			maxCpus, err := strconv.ParseFloat(value, 64)
 			if err != nil || maxCpus < 0 || maxCpus > util.UnlimitedCpuThreshold {
-				log.Errorf("Invalid value for maxCpusPerUser: %s\n", value)
 				return util.NewCraneErr(util.ErrorCmdArg, fmt.Sprintf("Invalid value for maxCpusPerUser: %s", value))
 			}
 			FlagQos.MaxCpusPerUser = maxCpus
