@@ -841,8 +841,7 @@ func submitContainerJob(job *protos.JobToCtld) (*protos.SubmitBatchJobReply, err
 
 	reply, err := stub.SubmitBatchJob(context.Background(), req)
 	if err != nil {
-		util.GrpcErrorPrintf(err, "Failed to submit the container job")
-		return reply, util.NewCraneErr(util.ErrorNetwork, "")
+		return reply, util.NewCraneErrFromGrpc(util.ErrorNetwork, err, "Failed to submit the container job")
 	}
 
 	if reply.GetOk() {
@@ -858,8 +857,7 @@ func submitContainerStep(step *protos.StepToCtld) (*protos.SubmitContainerStepRe
 
 	reply, err := stub.SubmitContainerStep(context.Background(), req)
 	if err != nil {
-		util.GrpcErrorPrintf(err, "Failed to submit the container step")
-		return reply, util.NewCraneErr(util.ErrorNetwork, "")
+		return reply, util.NewCraneErrFromGrpc(util.ErrorNetwork, err, "Failed to submit the container step")
 	}
 
 	if reply.GetOk() {
@@ -918,8 +916,8 @@ func attachAfterRun(f *Flags, reply protoreflect.ProtoMessage) error {
 
 		reply, err := stub.AttachContainerStep(grpcCtx, req)
 		if err != nil {
-			util.GrpcErrorPrintf(err, "Failed to get attach URL for container (Job ID: %d, Step ID: %d)", jobId, stepId)
-			return nil, util.NewCraneErr(util.ErrorNetwork, "")
+			return nil, util.NewCraneErrFromGrpc(util.ErrorNetwork, err,
+				"Failed to get attach URL for container (Job ID: %d, Step ID: %d)", jobId, stepId)
 		}
 
 		return reply, nil
