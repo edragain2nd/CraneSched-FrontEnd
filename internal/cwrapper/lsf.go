@@ -165,7 +165,7 @@ func bacct() *cobra.Command {
 			cacct.RootCmd.SetArgs(cacctArgs)
 			err := cacct.RootCmd.Execute()
 			if err != nil {
-				exitWithCommandError("bacct", err)
+				util.ExitWithCommandError("bacct", err)
 			} else {
 				os.Exit(util.ErrorSuccess)
 			}
@@ -319,7 +319,7 @@ func bsub() *cobra.Command {
 			cbatch.RootCmd.SetArgs(cbatchArgs)
 			err := cbatch.RootCmd.Execute()
 			if err != nil {
-				exitWithCommandError("bsub", err)
+				util.ExitWithCommandError("bsub", err)
 			} else {
 				os.Exit(util.ErrorSuccess)
 			}
@@ -428,7 +428,7 @@ func bjobs() *cobra.Command {
 			cqueue.RootCmd.SetArgs(cqueueArgs)
 			err := cqueue.RootCmd.Execute()
 			if err != nil {
-				exitWithCommandError("bjobs", err)
+				util.ExitWithCommandError("bjobs", err)
 			} else {
 				os.Exit(util.ErrorSuccess)
 			}
@@ -486,7 +486,7 @@ func bqueues() *cobra.Command {
 			cinfo.RootCmd.SetArgs(cinfoArgs)
 			err := cinfo.RootCmd.Execute()
 			if err != nil {
-				exitWithCommandError("bqueues", err)
+				util.ExitWithCommandError("bqueues", err)
 			} else {
 				os.Exit(util.ErrorSuccess)
 			}
@@ -553,7 +553,7 @@ func bkill() *cobra.Command {
 			ccancel.RootCmd.SetArgs(ccancelArgs)
 			err := ccancel.RootCmd.Execute()
 			if err != nil {
-				exitWithCommandError("bkill", err)
+				util.ExitWithCommandError("bkill", err)
 			} else {
 				os.Exit(util.ErrorSuccess)
 			}

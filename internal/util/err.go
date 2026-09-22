@@ -148,7 +148,8 @@ func RunEWrapperForLeafCommand(cmd *cobra.Command) {
 }
 
 func RunAndHandleExit(cmd *cobra.Command) {
-	if err := cmd.Execute(); err != nil {
+	executedCmd, err := cmd.ExecuteC()
+	if err != nil {
 		var commandExitErr *CommandExitError
 		if errors.As(err, &commandExitErr) {
 			os.Exit(commandExitErr.Code)
@@ -156,12 +157,16 @@ func RunAndHandleExit(cmd *cobra.Command) {
 		// Commands that opt out of Cobra's automatic error output use this
 		// path as their single error reporting point.
 		if cmd.SilenceErrors {
+			commandName := cmd.Name()
+			if executedCmd != nil {
+				commandName = executedCmd.Name()
+			}
 			printError := func(message string) {
 				message = strings.TrimSpace(message)
 				if message == "" {
 					return
 				}
-				fmt.Fprintln(os.Stderr, fmt.Sprintf("%s: error: %s", cmd.CommandPath(), message))
+				fmt.Fprintln(os.Stderr, fmt.Sprintf("%s: error: %s", commandName, message))
 			}
 			var craneErr *CraneError
 			if errors.As(err, &craneErr) && craneErr != nil {
@@ -185,6 +190,20 @@ func RunAndHandleExit(cmd *cobra.Command) {
 		}
 	}
 	os.Exit(ErrorSuccess)
+}
+
+func ExitWithCommandError(command string, err error) {
+	var craneErr *CraneError
+	if errors.As(err, &craneErr) && craneErr != nil {
+		message := strings.TrimSpace(craneErr.Message)
+		if message != "" {
+			fmt.Fprintf(os.Stderr, "%s: error: %s\n", command, message)
+		}
+		os.Exit(craneErr.Code)
+	}
+
+	fmt.Fprintf(os.Stderr, "%s: error: %s\n", command, strings.TrimSpace(err.Error()))
+	os.Exit(ErrorGeneric)
 }
 
 // gRPC errors

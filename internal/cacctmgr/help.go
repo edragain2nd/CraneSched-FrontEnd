@@ -23,11 +23,7 @@ import (
 	"fmt"
 )
 
-func showHelp() {
-	commandName := "cacctmgr"
-	if util.IsSlurmOutputMode() {
-		commandName = "sacctmgr"
-	}
+func showHelp(commandName string) {
 	help := fmt.Sprintf(`Crane Account Manager (%[1]s) - version %[2]s
   
   USAGE: %[1]s <ACTION> <ENTITY> [OPTIONS]

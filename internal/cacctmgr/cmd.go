@@ -21,7 +21,6 @@ package cacctmgr
 import (
 	"CraneFrontEnd/generated/protos"
 	"CraneFrontEnd/internal/util"
-	"errors"
 	"fmt"
 	"math"
 	"os"
@@ -138,36 +137,21 @@ func parsePreemptMode(value string) (protos.PreemptMode, error) {
 	}
 }
 
-func ParseCmdArgs(args []string) {
-	commandArgs := preParseGlobalFlags(args[1:])
-
+func Run(args []string, commandName string) error {
+	commandArgs := preParseGlobalFlags(args[1:], commandName)
 	if len(commandArgs) == 0 {
-		showHelp()
-		os.Exit(0)
+		showHelp(commandName)
+		return nil
 	}
+
 	cmdStr := getCmdStringByArgs(commandArgs)
 	command, err := ParseCAcctMgrCommand(cmdStr)
-
 	if err != nil {
-		log.Errorf("cacctmgr: error: command format is incorrect %v", err)
-		os.Exit(util.ErrorCmdArg)
+		return util.NewCraneErr(util.ErrorCmdArg,
+			fmt.Sprintf("command format is incorrect %v", err))
 	}
 
-	result := executeCommand(command)
-	if result != nil {
-		var craneError *util.CraneError
-		if errors.As(result, &craneError) {
-			if craneError.Message != "" {
-				log.Errorf("cacctmgr: error: %s", strings.TrimSpace(craneError.Message))
-			}
-			os.Exit(craneError.Code)
-		}
-		log.Errorf("cacctmgr: error: %s", strings.TrimSpace(result.Error()))
-		os.Exit(util.ErrorGeneric)
-	} else {
-		os.Exit(util.ErrorSuccess)
-	}
-
+	return executeCommand(command)
 }
 
 func executeCommand(command *CAcctMgrCommand) error {

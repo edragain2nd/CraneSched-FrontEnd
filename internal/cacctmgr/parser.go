@@ -21,7 +21,6 @@ package cacctmgr
 import (
 	"CraneFrontEnd/internal/util"
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 
@@ -356,7 +355,7 @@ func (c *CAcctMgrCommand) GetSetParams() (map[string]string, map[string]string, 
 	return setMap, addMap, deleteMap
 }
 
-func preParseGlobalFlags(args []string) []string {
+func preParseGlobalFlags(args []string, commandName string) []string {
 	remainingArgs := []string{}
 	for i := 0; i < len(args); i++ {
 		arg := args[i]
@@ -379,11 +378,11 @@ func preParseGlobalFlags(args []string) []string {
 
 		switch flagName {
 		case "-h", "--help":
-			showHelp()
-			os.Exit(0)
+			showHelp(commandName)
+			return nil
 		case "-v", "-V", "--version":
 			fmt.Println(util.Version())
-			os.Exit(0)
+			return nil
 		case "-J", "--json":
 			FlagJson = true
 		case "-C", "--config":

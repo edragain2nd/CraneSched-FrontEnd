@@ -220,7 +220,7 @@ Currently supports a practical subset of qsub options that can be mapped to Cran
 
 			err := cbatch.RootCmd.Execute()
 			if err != nil {
-				exitWithCommandError("qsub", err)
+				util.ExitWithCommandError("qsub", err)
 			} else {
 				os.Exit(util.ErrorSuccess)
 			}
@@ -269,7 +269,7 @@ func qdel() *cobra.Command {
 			ccancel.RootCmd.SetArgs(ccancelArgs)
 			err := ccancel.RootCmd.Execute()
 			if err != nil {
-				exitWithCommandError("qdel", err)
+				util.ExitWithCommandError("qdel", err)
 			} else {
 				os.Exit(util.ErrorSuccess)
 			}
@@ -341,7 +341,7 @@ func qacct() *cobra.Command {
 			cacct.RootCmd.SetArgs(cacctArgs)
 			err := cacct.RootCmd.Execute()
 			if err != nil {
-				exitWithCommandError("qacct", err)
+				util.ExitWithCommandError("qacct", err)
 			} else {
 				os.Exit(util.ErrorSuccess)
 			}
@@ -420,7 +420,7 @@ func qstat() *cobra.Command {
 			cqueue.RootCmd.SetArgs(cqueueArgs)
 			err := cqueue.RootCmd.Execute()
 			if err != nil {
-				exitWithCommandError("qstat", err)
+				util.ExitWithCommandError("qstat", err)
 			} else {
 				os.Exit(util.ErrorSuccess)
 			}

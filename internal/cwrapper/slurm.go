@@ -144,7 +144,7 @@ func sacct() *cobra.Command {
 			cacct.RootCmd.SetArgs(convertedArgs)
 			err := cacct.RootCmd.Execute()
 			if err != nil {
-				exitWithCommandError("sacct", err)
+				util.ExitWithCommandError("sacct", err)
 			} else {
 				os.Exit(util.ErrorSuccess)
 			}
@@ -201,8 +201,7 @@ func sacctmgr() *cobra.Command {
 		GroupID:            "slurm",
 		DisableFlagParsing: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cacctmgr.ParseCmdArgs(normalizeSacctmgrArgs(args))
-			return nil
+			return cacctmgr.Run(normalizeSacctmgrArgs(args), "sacctmgr")
 		},
 	}
 
@@ -693,7 +692,7 @@ func scancel() *cobra.Command {
 			ccancel.RootCmd.SetArgs(ccancelArgs)
 			err := ccancel.RootCmd.Execute()
 			if err != nil {
-				exitWithCommandError("scancel", err)
+				util.ExitWithCommandError("scancel", err)
 			} else {
 				os.Exit(util.ErrorSuccess)
 			}
@@ -1118,7 +1117,7 @@ func squeue() *cobra.Command {
 			cqueue.RootCmd.SetArgs(convertedArgs)
 			err := cqueue.RootCmd.Execute()
 			if err != nil {
-				exitWithCommandError("squeue", err)
+				util.ExitWithCommandError("squeue", err)
 			} else {
 				os.Exit(util.ErrorSuccess)
 			}

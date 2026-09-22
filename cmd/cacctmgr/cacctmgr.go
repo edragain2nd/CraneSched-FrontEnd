@@ -19,11 +19,14 @@
 package main
 
 import (
+	"CraneFrontEnd/internal/util"
 	"os"
 
 	cacctmgr "CraneFrontEnd/internal/cacctmgr"
 )
 
 func main() {
-	cacctmgr.ParseCmdArgs(os.Args)
+	if err := cacctmgr.Run(os.Args, "cacctmgr"); err != nil {
+		util.ExitWithCommandError("cacctmgr", err)
+	}
 }
